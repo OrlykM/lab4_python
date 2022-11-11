@@ -1,6 +1,10 @@
 from flask import Flask
+from flask_bcrypt import Bcrypt
+from blueprint import api_blueprint
 app = Flask(__name__)
+bycrypted_app = Bcrypt(app)
+app.register_blueprint(api_blueprint)
 
-@app.route('/api/v1/hello-world-3')
-def hello_world():
-    return 'Hello world! 3'
+@app.route('/')
+def root():
+    return ''
