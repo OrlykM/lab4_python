@@ -21,7 +21,8 @@ class UserData(Schema):
     phone = fields.String(
         validate=validate.Regexp('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[\s0-9]{4,20}$', error="Invalid phone"))
     userStatus = fields.String(validate=validate.OneOf(["regular", "premium"]))
-    fk_location = fields.Integer()
+    idlocation = fields.Integer()
+    isAdmin = fields.Boolean()
 
 class LocalAdData(Schema):
     id = fields.Integer()
@@ -31,8 +32,8 @@ class LocalAdData(Schema):
     publishingDate = fields.DateTime()
     about = fields.String()
     photoUrls = fields.String()
-    fk_user_id = fields.Integer()
-    fk_location_id = fields.Integer()
+    user_id = fields.Integer()
+    location_id = fields.Integer()
 
 class PublicAdData(Schema):
     id = fields.Integer()
@@ -41,7 +42,7 @@ class PublicAdData(Schema):
     status = fields.String(validate=validate.OneOf(["active", "closed", "confirmed"]))
     publishingDate = fields.DateTime()
     about = fields.String()
-    fk_user_id = fields.Integer()
+    user_id = fields.Integer()
 
 #fields.Nested(LocationData(only=('id')))
 
@@ -52,7 +53,8 @@ class CreateUser(Schema):
     password = fields.Function(deserialize=lambda obj: generate_password_hash(obj), load_only=True)
     phone = fields.String(validate=validate.Regexp('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[\s0-9]{4,20}$', error="Invalid phone"))
     userStatus = fields.String(validate=validate.OneOf(["regular", "premium"]))
-    fk_location_id = fields.Integer()#fields.Nested(LocationData)
+    isAdmin = fields.Boolean()
+    idlocation = fields.Integer()#fields.Nested(LocationData)
 
 class GetUser(Schema):
     firstName = fields.String()
@@ -61,41 +63,42 @@ class GetUser(Schema):
     phone = fields.String(validate=validate.Regexp('^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[\s0-9]{4,20}$', error="Invalid phone"))
     password = fields.Function(deserialize=lambda obj: generate_password_hash(obj), load_only=True)
     userStatus = fields.String(validate=validate.OneOf(["regular", "premium"]))
-    fk_location_id = fields.Integer()
+    isAdmin = fields.Boolean()
+    idlocation = fields.Integer()
 
 class CreateLocalAd(Schema):
     title = fields.String()
-    fk_category = fields.Integer()
+    id_category = fields.Integer()
     status = fields.String(validate=validate.OneOf(["active", "closed", "confirmed"]))
     publishingDate = fields.DateTime()
     about = fields.String()
-    photoUrls = fields.String()
-    fk_user_id = fields.Integer()
-    fk_location_id = fields.Integer()
+    photoUrl = fields.String()
+    #user_id = fields.Integer()
+    location_id = fields.Integer()
 
 class GetLocalAd(Schema):
     title = fields.String()
-    fk_category = fields.Integer()
+    id_category = fields.Integer()
     status = fields.String(validate=validate.OneOf(["active", "closed", "confirmed"]))
     publishingDate = fields.DateTime()
     about = fields.String()
-    photoUrls = fields.String()
-    fk_user_id = fields.Integer()
-    fk_location_id = fields.Integer()
+    photoUrl = fields.String()
+    user_id = fields.Integer()
+    location_id = fields.Integer()
 
 class CreatePublicAd(Schema):
     title = fields.String()
-    fk_category = fields.Integer()
+    id_category = fields.Integer()
     status = fields.String(validate=validate.OneOf(["active", "closed", "confirmed"]))
     publishingDate = fields.DateTime()
     about = fields.String()
-    fk_user_id = fields.Integer()
+    #user_id = fields.Integer()
 
 class GetPublicAd(Schema):
     title = fields.String()
-    fk_category = fields.Integer()
+    id_category = fields.Integer()
     status = fields.String(validate=validate.OneOf(["active", "closed", "confirmed"]))
     publishingDate = fields.DateTime()
     about = fields.String()
-    photoUrls = fields.String()
-    fk_user_id = fields.Integer()
+    photoUrl = fields.String()
+    user_id = fields.Integer()
