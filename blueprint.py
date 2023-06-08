@@ -5,11 +5,8 @@ from schemas import *
 from models import *
 from flask_httpauth import HTTPBasicAuth
 from flask_bcrypt import generate_password_hash, check_password_hash
-
 api_blueprint = Blueprint('api', __name__)
-
 auth = HTTPBasicAuth()
-
 
 @auth.verify_password
 def verify_password(email, password):
@@ -18,11 +15,13 @@ def verify_password(email, password):
         return email
     return None
 
-
 def admin_required(func):
     def wrapper(*args, **kwargs):
-        email = auth.current_user()
+        email = auth.username()
         user = db_utils.get_entry_by_email(User, email)
+        if user == 404:
+            return make_response(jsonify({"error":"Admin not found"}))
+
         if user.isAdmin == 1:
             return func(*args, **kwargs)
         else:
@@ -33,18 +32,15 @@ def admin_required(func):
     wrapper.__name__ = func.__name__
     return wrapper
 
-
 @api_blueprint.route("/user/login")
 @auth.verify_password
 def login(email, password):
-
     user = db_utils.get_entry_by_email(User, email)
     if user == 404:
-        return False
+        return jsonify(False)
     if check_password_hash(user.password, password):
-        return True
-    return False
-
+        return jsonify(True)
+    return jsonify(False)
 
 @api_blueprint.route('/user', methods=['POST'])
 def create_user():
@@ -75,10 +71,9 @@ def create_user():
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
 
-
 @api_blueprint.route('/user', methods=['GET'])
-@auth.login_required
-@admin_required
+#@auth.login_required
+#@admin_required
 def get_all_users():
     try:
         users = db_utils.get_entry(User)
@@ -89,10 +84,9 @@ def get_all_users():
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
 
-
 @api_blueprint.route('/user/<int:id>', methods=['GET'])
 @auth.login_required
-@admin_required
+#@admin_required
 def get_user(id: int):
     try:
         user = db_utils.get_entry_by_id(User, id)
@@ -106,7 +100,6 @@ def get_user(id: int):
     except ValidationError as err:
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
-
 
 @api_blueprint.route('/user/<int:id>', methods=['PUT'])
 @auth.login_required
@@ -264,7 +257,6 @@ def update_user(id: int):
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
 
-
 @api_blueprint.route('/user/<int:id>', methods=['DELETE'])
 @auth.login_required
 @admin_required
@@ -283,22 +275,14 @@ def delete_user(id: int):
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
 
-
 @api_blueprint.route("/user/self", methods=["GET", "DELETE", "PUT"])
 @auth.login_required
 def user_self():
-    email = auth.current_user()
-    '''
-    if not auth.current_user():
-        print('ya eblan')
-        response = make_response('You are not logged in')
-        response.status_code = 410
-        return response
-    '''
+    email = auth.username()
     user = db_utils.get_entry_by_email(User, email)
-
+    if user == 404:
+        return make_response(jsonify("Not Found"))
     selfId = user.id
-
     if request.method == "GET":
         user = db_utils.get_entry_by_id(User, selfId)
         response = make_response(jsonify(UserData().dump(user)), 200)
@@ -462,7 +446,6 @@ def user_self():
             response = dict({"Uncorrect fields": err.normalized_messages()})
             return response, 400
 
-
 @api_blueprint.route('/advertisement/local', methods=['POST'])
 @auth.login_required
 def create_local_ad():
@@ -480,19 +463,11 @@ def create_local_ad():
             response = make_response(jsonify("Missing required fields"))
             response.status_code = 405
             return response
-        if 'publishingDate' not in localad_data:
-            response = make_response(jsonify("Missing required fields"))
-            response.status_code = 405
-            return response
-        # if 'user_id' not in localad_data:
-        # response = make_response(jsonify("Missing required fields"))
-        # response.status_code = 405
-        # return response
         if 'location_id' not in localad_data:
             response = make_response(jsonify("Missing required fields"))
             response.status_code = 405
             return response
-        email = auth.current_user()
+        email = auth.username()
         user = db_utils.get_entry_by_email(User, email)
         selfId = user.id
         localad_data['user_id'] = selfId
@@ -509,12 +484,14 @@ def create_local_ad():
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
 
-
 @api_blueprint.route('/advertisement/local', methods=['GET'])
 @auth.login_required
 def get_local_ad():
-    email = auth.current_user()
+    email = auth.username()
     user = db_utils.get_entry_by_email(User, email)
+    if user == 404:
+        response = make_response(jsonify("Not found"))
+        return response, 404
     locId = user.idlocation
     try:
         ad = db_utils.get_local_ad_by_location(LocalAd, locId)
@@ -524,7 +501,6 @@ def get_local_ad():
     except ValidationError as err:
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
-
 
 @api_blueprint.route('/advertisement/local/<int:id>', methods=['GET'])
 @auth.login_required
@@ -542,12 +518,11 @@ def get_local_ad_(id: int):
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
 
-
 @api_blueprint.route('/advertisement/local/<int:id>', methods=['PUT'])
 @auth.login_required
 def update_local_ad(id: int):
     getLocalData = db_utils.get_entry_by_id(LocalAd, id)
-    email = auth.current_user()
+    email = auth.username()
     user = db_utils.get_entry_by_email(User, email)
     selfId = user.id
     try:
@@ -563,10 +538,6 @@ def update_local_ad(id: int):
             respose = make_response(jsonify("Unknown user id"))
             respose.status_code = 404
             return respose
-        if getLocalData.user_id != selfId:
-            response = make_response('Error: you can`t update someones ad')
-            response.status_code = 407
-            return response
         if 'id_category' in localad_data and 'location_id' in localad_data:
             new_localad = db_utils.update_localad(id, category=localad_data['id_category'],
                                                   user=selfId
@@ -597,38 +568,6 @@ def update_local_ad(id: int):
             response = make_response(jsonify(GetLocalAd().dump(new_localad)))
             response.status_code = 200
             return response
-        '''
-        if 'id_category' in localad_data and 'user_id' not in localad_data and 'idlocation' in localad_data:
-            new_localad = db_utils.update_localad(id, category=localad_data['id_category'],
-                                                  user=None
-                                                  , location=localad_data['idlocation'], **localad_data)
-            if new_localad == 400:
-                respose = make_response(jsonify("Unknown user id"))
-                respose.status_code = 404
-                return respose
-            if new_localad == 405:
-                respose = make_response(jsonify("Not correct values entered"))
-                respose.status_code = 405
-                return respose
-            response = make_response(jsonify(GetLocalAd().dump(new_localad)))
-            response.status_code = 200
-            return response
-        if 'id_category' in localad_data and 'user_id' not in localad_data and 'idlocation' not in localad_data:
-            new_localad = db_utils.update_localad(id, category=localad_data['id_category'],
-                                                  user=None
-                                                  , location=None, **localad_data)
-            if new_localad == 400:
-                respose = make_response(jsonify("Unknown user id"))
-                respose.status_code = 404
-                return respose
-            if new_localad == 405:
-                respose = make_response(jsonify("Not correct values entered"))
-                respose.status_code = 405
-                return respose
-            response = make_response(jsonify(GetLocalAd().dump(new_localad)))
-            response.status_code = 200
-            return response
-        '''
         if 'id_category' not in localad_data and 'location_id' in localad_data:
             new_localad = db_utils.update_localad(id, category=None,
                                                   user=selfId
@@ -659,48 +598,15 @@ def update_local_ad(id: int):
             response = make_response(jsonify(GetLocalAd().dump(new_localad)))
             response.status_code = 200
             return response
-        '''
-        if 'id_category' not in localad_data and 'user_id' not in localad_data and 'idlocation' in localad_data:
-            new_localad = db_utils.update_localad(id, category=None,
-                                                  user=None
-                                                  , location=['idlocation'], **localad_data)
-            if new_localad == 400:
-                respose = make_response(jsonify("Unknown user id"))
-                respose.status_code = 404
-                return respose
-            if new_localad == 405:
-                respose = make_response(jsonify("Not correct values entered"))
-                respose.status_code = 405
-                return respose
-            response = make_response(jsonify(GetLocalAd().dump(new_localad)))
-            response.status_code = 200
-            return response
-        if 'id_category' not in localad_data and 'user_id' not in localad_data and 'idlocation' not in localad_data:
-            new_localad = db_utils.update_localad(id, category=None,
-                                                  user=None
-                                                  , location=None, **localad_data)
-            if new_localad == 400:
-                respose = make_response(jsonify("Unknown user id"))
-                respose.status_code = 404
-                return respose
-            if new_localad == 405:
-                respose = make_response(jsonify("Not correct values entered"))
-                respose.status_code = 405
-                return respose
-            response = make_response(jsonify(GetLocalAd().dump(new_localad)))
-            response.status_code = 200
-            return response
-        '''
     except ValidationError as err:
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
-
 
 @api_blueprint.route('/advertisement/local/<int:id>', methods=['DELETE'])
 @auth.login_required
 def delete_local_ad(id: int):
     try:
-        email = auth.current_user()
+        email = auth.username()
         user = db_utils.get_entry_by_email(User, email)
         selfId = user.id
         getLocalAd = db_utils.get_entry_by_id(LocalAd, id)
@@ -725,12 +631,15 @@ def delete_local_ad(id: int):
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
 
-
 @api_blueprint.route('/advertisement/public', methods=['POST'])
 @auth.login_required
 def create_public_ad():
     try:
         publicad_data = CreatePublicAd().load(request.json)
+        if publicad_data['photoUrl'] == 'null':
+            publicad_data['photoUrl'] = None
+
+
         if 'title' not in publicad_data:
             response = make_response(jsonify("Missing required fields"))
             response.status_code = 405
@@ -743,15 +652,7 @@ def create_public_ad():
             response = make_response(jsonify("Missing required fields"))
             response.status_code = 405
             return response
-        if 'publishingDate' not in publicad_data:
-            response = make_response(jsonify("Missing required fields"))
-            response.status_code = 405
-            return response
-        # if 'user_id' not in publicad_data:
-        # response = make_response(jsonify("Missing required fields"))
-        # response.status_code = 405
-        # return response
-        email = auth.current_user()
+        email = auth.username()
         user = db_utils.get_entry_by_email(User, email)
         selfId = user.id
         publicad_data['user_id'] = selfId
@@ -764,10 +665,10 @@ def create_public_ad():
         response = make_response(jsonify(CreatePublicAd().dump(publicad)))
         response.status_code = 200
         return response
+
     except ValidationError as err:
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
-
 
 @api_blueprint.route('/advertisement/public', methods=['GET'])
 def get_public_ad():
@@ -779,7 +680,6 @@ def get_public_ad():
     except ValidationError as err:
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
-
 
 @api_blueprint.route('/advertisement/public/<int:id>', methods=['GET'])
 def get_public_ad_(id: int):
@@ -796,12 +696,41 @@ def get_public_ad_(id: int):
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
 
+@api_blueprint.route('/category/<int:id>', methods=['GET'])
+def get_category(id: int):
+    try:
+        ad = db_utils.get_entry_by_id(Category, id)
+        if ad == 404:
+            response = make_response(jsonify("Unknown category id"))
+            response.status_code = 404
+            return response
+        response = make_response(jsonify(GetCategory().dump(ad)))
+        response.status_code = 200
+        return response
+    except ValidationError as err:
+        response = dict({"Uncorrect fields": err.normalized_messages()})
+        return response, 400
+
+@api_blueprint.route('/category', methods=['GET'])
+def get_category_all():
+    try:
+        ad = db_utils.get_entry(Category)
+        if ad == 404:
+            response = make_response(jsonify("Unknown category id"))
+            response.status_code = 404
+            return response
+        response = make_response(jsonify(GetCategory(many=True).dump(ad)))
+        response.status_code = 200
+        return response
+    except ValidationError as err:
+        response = dict({"Uncorrect fields": err.normalized_messages()})
+        return response, 400
 
 @api_blueprint.route('/advertisement/public/<int:id>', methods=['PUT'])
 @auth.login_required
 def update_public_ad(id: int):
     getPublicData = db_utils.get_entry_by_id(PublicAd, id)
-    email = auth.current_user()
+    email = auth.username()
     user = db_utils.get_entry_by_email(User, email)
     selfId = user.id
     try:
@@ -817,10 +746,6 @@ def update_public_ad(id: int):
         if publicad == 404:
             response = make_response(jsonify("Unknown public ad id"))
             response.status_code = 404
-            return response
-        if getPublicData.user_id != selfId:
-            response = make_response('Error: you can`t update someones ad')
-            response.status_code = 407
             return response
         if 'id_category' in publicad_data:
             new_publicad = db_utils.update_publicad(id, category=publicad_data['id_category'],
@@ -842,38 +767,7 @@ def update_public_ad(id: int):
             response = make_response('You can`t update user field')
             response.status_code = 410
             return response
-        '''
-        if 'id_category' in publicad_data and 'user_id' not in publicad_data:
-            new_publicad = db_utils.update_publicad(id, category=publicad_data['id_category'],
-                                                    user=None, **publicad_data)
-            if new_publicad == 404:
-                response = make_response(jsonify("Unknown public ad id"))
-                response.status_code = 404
-                return response
-            if new_publicad == 405:
-                response = make_response(jsonify("Not correct values entered"))
-                response.status_code = 405
-                return response
 
-            response = make_response(jsonify(GetPublicAd().dump(new_publicad)))
-            response.status_code = 200
-            return response
-        if 'id_category' not in publicad_data and 'user_id' in publicad_data:
-            new_publicad = db_utils.update_publicad(id, category=None,
-                                                    user=publicad_data['user_id'], **publicad_data)
-            if new_publicad == 404:
-                response = make_response(jsonify("Unknown public ad id"))
-                response.status_code = 404
-                return response
-            if new_publicad == 405:
-                response = make_response(jsonify("Not correct values entered"))
-                response.status_code = 405
-                return response
-
-            response = make_response(jsonify(GetPublicAd().dump(new_publicad)))
-            response.status_code = 200
-            return response
-        '''
         if 'id_category' not in publicad_data:
             new_publicad = db_utils.update_publicad(id, category=None,
                                                     user=selfId, **publicad_data)
@@ -894,12 +788,51 @@ def update_public_ad(id: int):
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
 
+@api_blueprint.route('/locations', methods=['GET'])
+def get_location():
+    try:
+        locations = db_utils.get_entry(Location)
+        response = make_response(jsonify(GetLocation(many=True).dump(locations)))
+        response.status_code = 200
+
+        return response
+    except ValidationError as err:
+        response = dict({"Uncorrect fields": err.normalized_messages()})
+        return response, 400
+
+@api_blueprint.route('/location/add', methods=['POST'])
+def post_location():
+    try:
+        data = CreateLocation().load(request.json)
+        location = db_utils.create_location(**data)
+        response = make_response(jsonify(LocationData().dump(location)))
+        response.status_code = 200
+        return response
+
+    except ValidationError as err:
+        response = dict({"Uncorrect fields": err.normalized_messages()})
+        return response, 400
+
+@api_blueprint.route("/location/<int:id>", methods=['GET'])
+def get_location_id(id: int):
+    try:
+        location = db_utils.get_entry_by_id(Location, id)
+        if location == 404:
+            response = make_response(jsonify("Unknown location id"))
+            response.status_code = 404
+            return response
+        response = make_response(jsonify(GetLocation().dump(location)))
+        response.status_code = 200
+        return response
+    except ValidationError as err:
+        response = dict({"Uncorrect fields": err.normalized_messages()})
+        return response, 400
 
 @api_blueprint.route('/advertisement/public/<int:id>', methods=['DELETE'])
 @auth.login_required
 def delete_public_ad(id: int):
     try:
-        email = auth.current_user()
+        email = auth.username()
         user = db_utils.get_entry_by_email(User, email)
         selfId = user.id
         getPublicAd = db_utils.get_entry_by_id(PublicAd, id)
@@ -923,38 +856,3 @@ def delete_public_ad(id: int):
     except ValidationError as err:
         response = dict({"Uncorrect fields": err.normalized_messages()})
         return response, 400
-
-
-'''
-@api_blueprint.route('/user/logout', methods=['GET'])
-def logout():
-    return "Log out page"
-'''
-
-"""
-{
-    "firstName": "FirstUser1Name",
-    "lastName": "LastUser1Name",
-    "email": "user1@localhost.com",
-    "password": "123qwe123",
-    "phone": "0987564321",
-    "userStatus": "premium",
-    "idlocation": 1,
-    "isAdmin":1
-}
-{
-    "title": "LocalAd1",
-    "id_category": 1,
-    "status": "active",
-    "publishingDate": "2022-05-01 23:05:21",
-    "user_id": 1,
-    "location_id": 1
-}
-{
-    "title": "PublicAd1",
-    "id_category": 1,
-    "status": "active",
-    "publishingDate": "2022-05-01 23:05:21",
-    "user_id": 1
-}
-"""

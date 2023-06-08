@@ -6,10 +6,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import *
 
-engine = create_engine("mysql://root:1234@localhost:3306/ad-service", echo=False)
+engine = create_engine("mysql://root:root@localhost:5900/adservice", echo=False, pool_size=200, max_overflow=210)
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
-
 
 class Location(Base):
     __tablename__ = 'location'
@@ -17,12 +16,10 @@ class Location(Base):
     country = Column(String(45), nullable=False)
     city = Column(String(45), nullable=False)
 
-
 class Category(Base):
     __tablename__ = 'category'
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(45), nullable=False)
-
 
 class User(Base):
     __tablename__ = 'user'
@@ -36,7 +33,6 @@ class User(Base):
     isAdmin = Column(Boolean, nullable=False)
     idlocation = Column(Integer, ForeignKey('location.id'), primary_key=True, nullable=False)
 
-
 class LocalAd(Base):
     __tablename__ = 'localad'
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -44,7 +40,7 @@ class LocalAd(Base):
     id_category = Column(Integer, ForeignKey('category.id'), primary_key=True, nullable=False)
     status = Column(Enum('active', 'closed', 'confirmed'), nullable=False)
     publishingDate = Column(DateTime, nullable=False, default=datetime.datetime.now())
-    about = Column(String(45))
+    about = Column(String(255))
     photoUrl = Column(String(10000), nullable=True)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=True, primary_key=True)
     location_id = Column(Integer, ForeignKey('location.id'), nullable=False, primary_key=True)
@@ -56,6 +52,6 @@ class PublicAd(Base):
     id_category = Column(Integer, ForeignKey('category.id'), primary_key=True, nullable=False)
     status = Column(Enum('active', 'closed', 'confirmed'), nullable=False)
     publishingDate = Column(DateTime, nullable=False, default=datetime.datetime.now())
-    about = Column(String(45))
+    about = Column(String(255))
     photoUrl = Column(String(10000), nullable=True)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=True, primary_key=True)

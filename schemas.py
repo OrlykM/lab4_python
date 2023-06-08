@@ -12,6 +12,21 @@ class CategoryData(Schema):
     id = fields.Integer()
     name = fields.String()
 
+class GetCategory(Schema):
+    id = fields.Integer()
+    name = fields.String()
+
+class GetLocation(Schema):
+    id = fields.Integer()
+    country = fields.String()
+    city = fields.String()
+
+class CreateLocation(Schema):
+
+    country = fields.String()
+    city = fields.String()
+
+
 class UserData(Schema):
     id = fields.Integer()
     firstName = fields.String()
@@ -41,10 +56,10 @@ class PublicAdData(Schema):
     fk_category = fields.Integer()
     status = fields.String(validate=validate.OneOf(["active", "closed", "confirmed"]))
     publishingDate = fields.DateTime()
+    photoUrl = fields.String()
     about = fields.String()
     user_id = fields.Integer()
 
-#fields.Nested(LocationData(only=('id')))
 
 class CreateUser(Schema):
     firstName = fields.String()
@@ -57,6 +72,7 @@ class CreateUser(Schema):
     idlocation = fields.Integer()#fields.Nested(LocationData)
 
 class GetUser(Schema):
+    id = fields.Integer()
     firstName = fields.String()
     lastName = fields.String()
     email = fields.Email(validate=validate.Email())
@@ -73,10 +89,10 @@ class CreateLocalAd(Schema):
     publishingDate = fields.DateTime()
     about = fields.String()
     photoUrl = fields.String()
-    #user_id = fields.Integer()
     location_id = fields.Integer()
 
 class GetLocalAd(Schema):
+    id = fields.Integer()
     title = fields.String()
     id_category = fields.Integer()
     status = fields.String(validate=validate.OneOf(["active", "closed", "confirmed"]))
@@ -92,9 +108,11 @@ class CreatePublicAd(Schema):
     status = fields.String(validate=validate.OneOf(["active", "closed", "confirmed"]))
     publishingDate = fields.DateTime()
     about = fields.String()
-    #user_id = fields.Integer()
+    photoUrl = fields.Raw(type='file')
+
 
 class GetPublicAd(Schema):
+    id=fields.Integer()
     title = fields.String()
     id_category = fields.Integer()
     status = fields.String(validate=validate.OneOf(["active", "closed", "confirmed"]))

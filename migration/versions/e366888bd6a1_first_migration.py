@@ -1,8 +1,9 @@
-"""empty message
+"""First migration
 
-Revision ID: a732bcef5842
+
+Revision ID: e366888bd6a1
 Revises: 
-Create Date: 2022-11-09 11:37:44.797578
+Create Date: 2023-04-09 23:06:40.556598
 
 """
 from alembic import op
@@ -10,7 +11,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'a732bcef5842'
+revision = 'e366888bd6a1'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -37,39 +38,40 @@ def upgrade() -> None:
     sa.Column('password', sa.String(length=250), nullable=False),
     sa.Column('phone', sa.String(length=45), nullable=False),
     sa.Column('userStatus', sa.Enum('regular', 'premium'), nullable=False),
-    sa.Column('fk_location_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['fk_location_id'], ['location.id'], ),
-    sa.PrimaryKeyConstraint('id', 'fk_location_id'),
+    sa.Column('isAdmin', sa.Boolean(), nullable=False),
+    sa.Column('idlocation', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['idlocation'], ['location.id'], ),
+    sa.PrimaryKeyConstraint('id', 'idlocation'),
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('phone')
     )
     op.create_table('localad',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('title', sa.String(length=45), nullable=False),
-    sa.Column('fk_category', sa.Integer(), nullable=False),
+    sa.Column('id_category', sa.Integer(), nullable=False),
     sa.Column('status', sa.Enum('active', 'closed', 'confirmed'), nullable=False),
     sa.Column('publishingDate', sa.DateTime(), nullable=False),
     sa.Column('about', sa.String(length=45), nullable=True),
-    sa.Column('photoUrls', sa.LargeBinary(), nullable=True),
-    sa.Column('fk_user_id', sa.Integer(), nullable=True),
-    sa.Column('fk_location_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['fk_category'], ['category.id'], ),
-    sa.ForeignKeyConstraint(['fk_location_id'], ['location.id'], ),
-    sa.ForeignKeyConstraint(['fk_user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id', 'fk_category', 'fk_user_id', 'fk_location_id')
+    sa.Column('photoUrl', sa.String(length=10000), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('location_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['id_category'], ['category.id'], ),
+    sa.ForeignKeyConstraint(['location_id'], ['location.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id', 'id_category', 'user_id', 'location_id')
     )
     op.create_table('publicad',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('title', sa.String(length=45), nullable=False),
-    sa.Column('fk_category', sa.Integer(), nullable=False),
+    sa.Column('id_category', sa.Integer(), nullable=False),
     sa.Column('status', sa.Enum('active', 'closed', 'confirmed'), nullable=False),
     sa.Column('publishingDate', sa.DateTime(), nullable=False),
     sa.Column('about', sa.String(length=45), nullable=True),
-    sa.Column('photoUrls', sa.LargeBinary(), nullable=True),
-    sa.Column('fk_user_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['fk_category'], ['category.id'], ),
-    sa.ForeignKeyConstraint(['fk_user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id', 'fk_category', 'fk_user_id')
+    sa.Column('photoUrl', sa.String(length=10000), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['id_category'], ['category.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id', 'id_category', 'user_id')
     )
     # ### end Alembic commands ###
 
